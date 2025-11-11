@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<!-- Add 'dark' class here dynamically --><html lang="en" class="scroll-smooth"> 
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enguru Global Solutions - Professional Business Solutions</title>
+    
+    <!-- 1. Tailwind CSS --><script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. Preload the Inter font --><link rel="preconnect" href="https://rsms.me/">
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+
+    <!-- 3. Three.js (Core 3D library) --><script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- 4. OrbitControls (non-module version, depends on global THREE) --><script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/controls/OrbitControls.js"></script>
+
+    <!-- 6. Custom Styles --><style>
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Will be set by light/dark mode */
+            overflow-x: hidden; 
+        }
+        #webgl-earth-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0; /* Behind other content */
+            pointer-events: auto; /* Allow mouse interaction */
+        }
+        .hero-content-overlay {
+            position: relative;
+            z-index: 20; /* Above the Earth canvas */
+        }
+        
+        /* NEW: Styles for the eye-tracking pupils */
+        /* This ensures the pupil's movement is smooth */
+        .pupil {
+            transition: transform 0.1s ease-out;
+        }
+
+        /* NEW: Animation for the scroll prompt arrow */
+        @keyframes swipe-up {
+            0% {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            50% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+        }
+        .animate-swipe-up {
+            animation: swipe-up 1.5s ease-in-out infinite;
+        }
+
+        /* NEW: Ensure service card links fill the grid cell */
+        .service-card-link {
+            display: block;
+            height: 100%;
+        }
+    </style>
+    
+    <!-- 7. Tailwind Configuration --><script>
+        tailwind.config = {
+            // NEW: Enable 'class' based dark mode
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    keyframes: {
+                        'boing': {
+                            '0%, 100%': { transform: 'scale(1) rotate(0deg)' },
+                            '25%': { transform: 'scale(1.2) rotate(-5deg)' },
+                            '50%': { transform: 'scale(0.9) rotate(5deg)' },
+                            '75%': { transform: 'scale(1.1) rotate(-2deg)' },
+                        }
+                    },
+                    animation: {
+                        'boing': 'boing 0.6s ease-in-out',
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<!-- NEW: Added light/dark default classes --><body class="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-gray-200 transition-colors duration-300">
+
+    <!-- NEW: Preloader --><!-- MODIFIED: Added light/dark classes --><div id="preloader" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white dark:bg-zinc-900 transition-opacity duration-500">
+        <!-- MODIFIED: Added light/dark classes --><div class="w-16 h-16 border-4 border-t-4 border-t-indigo-500 border-gray-300 dark:border-gray-600 rounded-full animate-spin"></div>
+        <p class="mt-4 text-lg text-gray-700 dark:text-gray-300">Loading Global Connections...</p>
+    </div>
+    <!-- Header & Navigation --><!-- MODIFIED: Added light/dark classes --><header class="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-lg fixed top-0 left-0 right-0 z-50 shadow-md transition-colors duration-300">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            
+            <!-- NEW: Split Logo and Theme Toggle -->
+            <div class="flex items-center gap-2 md:gap-3">
+                <!-- Logo Link (reloads page) -->
+                <a href="#" id="home-logo-link" class="group flex items-center" aria-label="Go to homepage">
+                    <span class="text-2xl md:text-3xl font-bold text-zinc-900 dark:text-white">
+                        ENGURU <span class="text-indigo-500 dark:text-indigo-400">GLOBAL</span>
+                    </span>
+                </a>
+                
+                <!-- Theme Toggle Button -->
+                <button id="theme-toggle-btn" class="group" aria-label="Toggle light and dark mode">
+                    <!-- Icon Container --><!-- MODIFIED: w-7 h-7 md:w-8 md:h-8 for smaller mobile icon --><div class="w-7 h-7 md:w-8 md:h-8 relative transition-transform duration-300 group-hover:scale-110">
+                        <!-- Sun Icon (Visible in light mode) --><!-- MODIFIED: new viewBox and larger eyes/pupils --><svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="w-full h-full text-yellow-500 block dark:hidden">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2.25v1.5m6.53.92-1.06 1.06M21.75 12h-1.5m-.92 6.53-1.06-1.06M12 21.75v-1.5m-6.53-.92 1.06-1.06M2.25 12h1.5m.92-6.53 1.06 1.06"/>
+                            <path fill="currentColor" d="M12 15.75a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Z"/>
+                            <circle fill="#FFFFFF" cx="10.5" cy="12" r="1.2" />
+                            <circle fill="#FFFFFF" cx="13.5" cy="12" r="1.2" />
+                            <circle class="pupil" fill="#333333" cx="10.5" cy="12" r="0.7" />
+                            <circle class="pupil" fill="#333333" cx="13.5" cy="12" r="0.7" />
+                        </svg>
+                        
+                        <!-- Moon Icon (Visible in dark mode) --><!-- NEW: Replaced with crescent moon from user image --><svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="w-full h-full text-indigo-300 hidden dark:block">
+                            <!-- Moon Crescent --><path fill="currentColor" d="M12.001 2.015c-5.523 0-10 4.477-10 10 0 4.39 2.86 8.13 6.837 9.473-.028-.242-.037-.488-.037-.738 0-5.523 4.477-10 10-10 2.23 0 4.264.733 5.898 1.944a1 1 0 0 0 .15-1.48A9.97 9.97 0 0 0 12.001 2.015Z" />
+                            <!-- Moon's Eyes (placed inside the crescent) --><circle fill="#FFFFFF" cx="11.5" cy="10.5" r="1.5" />
+                            <circle fill="#FFFFFF" cx="15.0" cy="11.5" r="1.5" />
+                            <!-- Moon's Pupils --><circle class="pupil" fill="#333333" cx="11.5" cy="10.5" r="0.8" />
+                            <circle class="pupil" fill="#333333" cx="15.0" cy="11.5" r="0.8" />
+                        </svg>
+                    </div>
+                </button>
+            </div>
+            <!-- END NEW -->
+
+            <!-- Right side items: Desktop Menu + Login --><!-- MODIFIED: Added 'hidden md:flex' to hide on mobile --><div class="hidden md:flex items-center space-x-2 sm:space-x-4">
+                <div class="flex space-x-3 sm:space-x-6 items-center">
+                    <!-- MODIFIED: Added light/dark classes --><a href="#home" class="text-gray-600 dark:text-gray-300 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors text-sm sm:text-base">Home</a>
+                    <a href="#about" class="text-gray-600 dark:text-gray-300 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors text-sm sm:text-base">About Us</a>
+                    <a href="#services" class="text-gray-600 dark:text-gray-300 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors text-sm sm:text-base">Services</a>
+                    <a href="#contact" class="bg-indigo-600 text-white px-3 py-2 rounded-lg font-medium hover:bg-indigo-500 transition-colors text-sm sm:text-base">
+                        Contact Us
+                    </a>
+                </div>
+
+                <!-- Animated Login Icon Button --><!-- MODIFIED: Changed ID for desktop version --><button id="login-modal-trigger-desktop" type="button" class="group text-gray-600 dark:text-gray-300 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors flex flex-col items-center p-1 rounded-lg hover:bg-gray-200 dark:hover:bg-zinc-700" style="width: 50px;" aria-label="Open login modal">
+                    <svg class="w-6 h-6 overflow-visible" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 12h.01"></path>
+                        <g class="transition-transform duration-300 ease-in-out transform group-hover:-translate-x-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 20v-8h3.5l-3-6H15"></path>
+                        </g>
+                    </svg>
+                    <span class="text-xs font-medium">Login</span>
+                    
+                </button> 
+            </div>
+
+            <!-- NEW: Mobile Menu Button (Hamburger) - Visible on mobile --><!-- MODIFIED: Now a flex container for login + menu --><div class="md:hidden flex items-center gap-2">
+                
+                <!-- NEW: Login Button for Mobile (Moved to header) --><!-- MODIFICATION: Added "flex-col", width, and the "Login" text span --><button id="login-modal-trigger-mobile" type="button" class="group text-gray-600 dark:text-gray-300 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors flex flex-col items-center p-1 rounded-lg hover:bg-gray-200 dark:hover:bg-zinc-700" style="width: 50px;" aria-label="Open login modal">
+                    <svg class="w-6 h-6 overflow-visible" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 12h.01"></path>
+                        <g> <!-- Removed hover animation for mobile simplicity -->
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 20v-8h3.5l-3-6H15"></path>
+                        </g>
+                    </svg>
+                    <!-- NEW: Added "Login" text for compact mobile view --><span class="text-xs font-medium">Login</span>
+                </button> 
+
+                <button id="mobile-menu-btn" class="text-zinc-900 dark:text-white p-2 rounded-md hover:bg-gray-200 dark:hover:bg-zinc-700" aria-label="Open main menu">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+            </div>
+
+        </nav>
+
+        <!-- NEW: Mobile Menu Panel (Hidden by default) --><div id="mobile-menu-panel" class="hidden md:hidden bg-white/95 dark:bg-zinc-900/95 backdrop-blur-lg shadow-lg">
+            <div class="px-6 pt-2 pb-6 space-y-3">
+                <a href="#home" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-zinc-700">Home</a>
+                <a href="#about" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-zinc-700">About Us</a>
+                <a href="#services" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-zinc-700">Services</a>
+                <a href="#contact" class="block px-3 py-2 rounded-md text-base font-medium bg-indigo-600 text-white hover:bg-indigo-500">
+                    Contact Us
+                </a>
+                
+                <!-- NEW: Login Button for Mobile --><!-- MODIFICATION: Removed login button from menu panel -->
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content --><main>
+
+        <!-- Section 1: Hero --><section id="home" class="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden">
+            <!-- 3D Earth Canvas --><canvas id="webgl-earth-canvas" class="z-0"></canvas>
+            
+            <!-- Zoom hint --><!-- MODIFIED: Added light/dark classes --><!-- MODIFICATION: Added responsive classes and changed text for mobile --><div class="absolute bottom-4 right-4 z-10 bg-black/30 text-white/70 dark:bg-white/30 dark:text-black/70 text-xs px-3 py-1 rounded-full backdrop-blur-sm block md:hidden">
+               Touch and Drag to Rotate
+            </div>
+
+            <!-- NEW: Scroll Down Prompt -->
+            <!-- MODIFICATION: Removed 'pointer-events-none' and added 'cursor-pointer' to make it interactive -->
+            <div id="scroll-prompt" class="absolute bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center space-y-1 opacity-0 transition-opacity duration-1000 cursor-pointer">
+                <svg class="w-8 h-8 text-white/80 animate-swipe-up" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <!-- This arrow points UP, simulating the "swipe up" gesture to scroll down -->
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v12" />
+                </svg>
+                <span class="text-white/80 text-xs md:text-sm font-medium">Scroll to explore</span>
+            </div>
+
+            <!-- Hero Content Overlay --><div class="container mx-auto px-6 text-center hero-content-overlay relative">
+                <!-- MODIFIED: Added light/dark classes --><!-- ADDED IDs for dynamic color change --><h1 id="hero-title" class="text-4xl sm:text-6xl md:text-7xl font-extrabold text-white leading-tight mb-6">
+                    ENGURU GLOBAL SOLUTIONS
+                </h1>
+                <!-- ADDED IDs for dynamic color change --><p id="hero-subtitle" class="text-xl sm:text-2xl text-gray-300 max-w-3xl mx-auto mb-10">
+                    Your expert partner in software consulting, product development, and business process automation.
+                </p>
+                <a href="#services" class="bg-indigo-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-indigo-500 transition-colors shadow-lg">
+                    Explore Our Services
+                </a>
+            </div>
+        </section>
+
+        <!-- Section 2: About Us --><!-- MODIFIED: Added light/dark classes --><section id="about" class="py-24 bg-gray-100 dark:bg-zinc-800">
+            <div class="container mx-auto px-6">
+                <div class="grid md:grid-cols-2 gap-12 items-center">
+                    <!-- About Text --><div>
+                        <h2 class="text-4xl font-bold text-zinc-900 dark:text-white mb-6">About Us</h2>
+                        <p class="text-lg text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">
+                            ENGURU GLOBAL SOLUTIONS is a software consulting and product development company based in India, Hyderabad focusing on providing quality, cost effective solutions to small and medium enterprises worldwide.
+                        </p>
+                        <p class="text-lg text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">
+                            We specialize in delivering solutions and products in Business Process Automation, Customized Application Development and Web based Applications.
+                        </p>
+                        <p class="text-lg text-gray-700 dark:text-gray-300 leading-relaxed">
+                            The ENGURU combines innovation and experience to deliver world-class solutions to a global customer base. We are a reliable outsourcing partner, known for our fundamental understanding of customer's needs and a responsibility for the products we offer.
+                        </p>
+                    </div>
+                    <!-- About Image (Placeholder) --><div class="rounded-lg overflow-hidden shadow-2xl">
+                        <img src="Teamimage.jpg" 
+                             onerror="this.src='https://placehold.co/600x400/1e293b/312e81?text=Team+Image+Not+Found'"
+                             alt="Our Team" 
+                             class="w-full h-full object-cover">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Our Services --><!-- MODIFIED: Added light/dark classes --><section id="services" class="py-24 bg-white dark:bg-zinc-900">
+            <div class="container mx-auto px-6">
+                <h2 class="text-4xl font-bold text-zinc-900 dark:text-white text-center mb-4">Our Services</h2>
+                <p class="text-xl text-gray-600 dark:text-gray-400 text-center max-w-2xl mx-auto mb-16">
+                    We offer flexibility and scalability, making business processes more efficient.
+                </p>
+
+                <!-- Service Cards Grid --><div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                    
+                    <!-- Service Card 1 (MODIFIED) -->
+                    <a href="#" class="service-card-link" data-service="software-development">
+                        <div class="bg-gray-100 dark:bg-zinc-800 p-8 rounded-lg shadow-xl transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 dark:hover:bg-zinc-700 group h-full">
+                            <div class="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center mb-6 transition-transform group-hover:animate-boing">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                            </div>
+                            <h3 class="text-2xl font-semibold text-zinc-900 dark:text-white mb-3">Software Development</h3>
+                            <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+                                Our in-house team creates bespoke solutions to improve efficiency, productivity, and profit, solving system integration and data issues.
+                            </p>
+                        </div>
+                    </a>
+
+                    <!-- Service Card 2 (MODIFIED) -->
+                    <a href="#" class="service-card-link" data-service="web-designing">
+                        <div class="bg-gray-100 dark:bg-zinc-800 p-8 rounded-lg shadow-xl transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 dark:hover:bg-zinc-700 group h-full">
+                            <div class="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center mb-6 transition-transform group-hover:animate-boing">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17.25l.038-.038A7.5 7.5 0 0112 15c1.528 0 2.94.59 4.01 1.583l.038.038M3.75 12h16.5M12 3.75v16.5"></path></svg>
+                            </div>
+                            <h3 class="text-2xl font-semibold text-zinc-900 dark:text-white mb-3">Web Designing</h3>
+                            <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+                                Professional web and HTML template design focusing on page-loading efficiency, enhanced graphics, usability, and responsive designs.
+                            </p>
+                        </div>
+                    </a>
+
+                    <!-- Service Card 3 (MODIFIED) -->
+                    <a href="#" class="service-card-link" data-service="mobile-app-development">
+                        <div class="bg-gray-100 dark:bg-zinc-800 p-8 rounded-lg shadow-xl transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 dark:hover:bg-zinc-700 group h-full">
+                            <div class="w-12 h-12 bg-cyan-500 rounded-full flex items-center justify-center mb-6 transition-transform group-hover:animate-boing">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18h3"></path></svg>
+                            </div>
+                            <h3 class="text-2xl font-semibold text-zinc-900 dark:text-white mb-3">Mobile App Development</h3>
+                            <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+                                Stay on track with the latest technologies for Android, iPad, and iPhone. Deep technical expertise in building secure SDKs.
+                            </p>
+                        </div>
+                    </a>
+
+                    <!-- Service Card 4 (MODIFIED) -->
+                    <a href="#" class="service-card-link" data-service="content-development">
+                        <div class="bg-gray-100 dark:bg-zinc-800 p-8 rounded-lg shadow-xl transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 dark:hover:bg-zinc-700 group h-full">
+                            <div class="w-12 h-12 bg-teal-500 rounded-full flex items-center justify-center mb-6 transition-transform group-hover:animate-boing">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125"></path></svg>
+                            </div>
+                            <h3 class="text-2xl font-semibold text-zinc-900 dark:text-white mb-3">Content Development</h3>
+                            <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+                                Content that speaks your business language. We handle all write-ups, from SEO content and creative writing to e-books.
+                            </p>
+                        </div>
+                    </a>
+
+                    <!-- Service Card 5 (MODIFIED) -->
+                    <a href="#" class="service-card-link" data-service="seo">
+                        <div class="bg-gray-100 dark:bg-zinc-800 p-8 rounded-lg shadow-xl transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 dark:hover:bg-zinc-700 group h-full">
+                            <div class="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center mb-6 transition-transform group-hover:animate-boing">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"></path></svg>
+                            </div>
+                            <h3 class="text-2xl font-semibold text-zinc-900 dark:text-white mb-3">Search Engine Optimization</h3>
+                            <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+                                Stay ahead of competitors with our prominent SEO services, using advanced on-page and off-page optimization techniques.
+                            </p>
+                        </div>
+                    </a>
+                    
+                    <!-- Service Card 6 (MODIFIED) -->
+                    <a href="#" class="service-card-link" data-service="manpower-recruitment">
+                        <div class="bg-gray-100 dark:bg-zinc-800 p-8 rounded-lg shadow-xl transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 dark:hover:bg-zinc-700 group h-full">
+                            <div class="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center mb-6 transition-transform group-hover:animate-boing">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.53-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"></path></svg>
+                            </div>
+                            <h3 class="text-2xl font-semibold text-zinc-900 dark:text-white mb-3">Manpower Recruitment</h3>
+                            <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+                                Leading consultancy in Engineering, IT, Education, Infrastructure, Manufacturing, and Medical. A complete solution for every HR need.
+                            </p>
+                        </div>
+                    </a>
+
+                    <!-- Service Card 7 (MODIFIED) -->
+                    <a href="#" class="service-card-link" data-service="export-import">
+                        <div class="bg-gray-100 dark:bg-zinc-800 p-8 rounded-lg shadow-xl transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 dark:hover:bg-zinc-700 group h-full">
+                            <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mb-6 transition-transform group-hover:animate-boing">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.125-.504 1.125-1.125V14.25m-17.25 4.5v-1.875a3.375 3.375 0 013.375-3.375h9.75a3.375 3.375 0 013.375 3.375v1.875m-17.25 4.5c0 .621.504 1.125 1.125 1.125h13.5c.621 0 1.125-.504 1.125-1.125m-17.25 4.5v-4.875c0-.621.504-1.125 1.125-1.125h13.5c.621 0 1.125.504 1.125 1.125v4.875M12 12.75h.008v.008H12v-.008z"></path></svg>
+                            </div>
+                            <h3 class="text-2xl font-semibold text-zinc-900 dark:text-white mb-3">Export & Import</h3>
+                            <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+                                International trading house specializing in sourcing and exporting a diverse range of products worldwide, including minerals, rice, and more.
+                            </p>
+                        </div>
+                    </a>
+
+                    <!-- Service Card 8 (MODIFIED) -->
+                    <a href="#" class="service-card-link" data-service="payroll-management">
+                        <div class="bg-gray-100 dark:bg-zinc-800 p-8 rounded-lg shadow-xl transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 dark:hover:bg-zinc-700 group h-full">
+                            <div class="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center mb-6 transition-transform group-hover:animate-boing">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0l.879-.659M12 6a3 3 0 100-6 3 3 0 000 6z"></path></svg>
+                            </div>
+                            <h3 class="text-2xl font-semibold text-zinc-900 dark:text-white mb-3">Payroll Management</h3>
+                            <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+                                We understand the significance of error-free payroll. Our services assist your business in management, reducing costs and ensuring accuracy.
+                            </p>
+                        </div>
+                    </a>
+                    
+                    <!-- Service Card 9 (MODIFIED) -->
+                    <a href="#" class="service-card-link" data-service="outsourcing">
+                        <div class="bg-gray-100 dark:bg-zinc-800 p-8 rounded-lg shadow-xl transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 dark:hover:bg-zinc-700 group h-full">
+                            <div class="w-12 h-12 bg-fuchsia-500 rounded-full flex items-center justify-center mb-6 transition-transform group-hover:animate-boing">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18c-2.305 0-4.408.867-6 2.292m0-14.25v14.25"></path></svg>
+                            </div>
+                            <h3 class="text-2xl font-semibold text-zinc-900 dark:text-white mb-3"> Outsourcing</h3>
+                            <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+                                A diverse scope of services including earning potential clients, managing information, and inbound/outbound call centers.
+                            </p>
+                        </div>
+                    </a>
+
+                    <!-- Service Card 10 (MODIFIED) -->
+                    <a href="#" class="service-card-link" data-service="bpo">
+                        <div class="bg-gray-100 dark:bg-zinc-800 p-8 rounded-lg shadow-xl transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 dark:hover:bg-zinc-700 group h-full">
+                            <div class="w-12 h-12 bg-lime-500 rounded-full flex items-center justify-center mb-6 transition-transform group-hover:animate-boing">
+                                <svg class="w-6 h-6 text-zinc-800" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.08l.738-.46c.47-.29.99-.26 1.41.08l.772.67c.42.36.51.97.23 1.41l-.39 1.15c-.18.53-.16.99.08 1.41.24.42.66.7 1.13.7h1.18c.55 0 .94.41.94 1.11v1.093c0 .7-.39 1.11-.94 1.11h-1.18c-.47 0-.89.28-1.13.7-.24.42-.26.88-.08 1.41l.39 1.15c.28.44.19 1.05-.23 1.41l-.772.67c-.42.36-.94.39-1.41.08l-.738-.46c-.35-.22-.807-.24-1.205-.08-.396.167-.71.506-.78.93l-.149.894c-.09.542-.56.94-1.11.94h-1.093c-.55 0-1.02-.398-1.11-.94l-.149-.894c-.07-.424-.384-.764-.78-.93-.398-.164-.855-.142-1.205-.08l-.738.46c-.47.29-.99.26-1.41-.08l-.772-.67c-.42-.36-.51.97-.23 1.41l.39-1.15c.18-.53.16-.99-.08-1.41-.24-.42-.66-.7-1.13-.7H3.94c-.55 0-.94-.41-.94-1.11V11.5c0-.7.39-1.11.94-1.11h1.18c.47 0 .89-.28 1.13.7.24-.42.26-.88.08-1.41l-.39-1.15c-.28-.44-.19-1.05.23-1.41l-.772.67c-.42-.36.94.39 1.41.08l.738.46c.35.22.807.24 1.205.08.396.167.71.506-.78.93l.149.894z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15a3 3 0 100-6 3 3 0 000 6z"></path></svg>
+                            </div>
+                            <h3 class="text-2xl font-semibold text-zinc-900 dark:text-white mb-3">BPO</h3>
+                            <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+                                ENGURU BPO offers a differing scope of administrations which incorporates earning potential clients, managing information proficiently, or investigating specialized issues and organization issues.
+                            </p>
+                        </div>
+                    </a>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Contact Us --><!-- MODIFIED: Added light/dark classes --><section id="contact" class="py-20 bg-gray-100 dark:bg-zinc-900">
+            <div class="container mx-auto px-6">
+                <h2 class="text-4xl font-bold text-zinc-900 dark:text-white text-center mb-16">Get In Touch</h2>
+                
+                <div class="grid md:grid-cols-2 gap-12">
+                    
+                    <!-- Contact Form --><form class="bg-white dark:bg-zinc-800 p-8 rounded-lg shadow-xl">
+                        <h3 class="text-2xl font-semibold text-zinc-900 dark:text-white mb-6">Send Us a Message</h3>
+                        <div class="mb-4">
+                            <label for="name" class="block text-gray-700 dark:text-gray-300 mb-2">Your Name</label>
+                            <input type="text" id="name" name="name" class="w-full bg-gray-100 dark:bg-zinc-700 text-zinc-900 dark:text-white p-3 rounded-lg border border-gray-300 dark:border-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div class="mb-4">
+                            <label for="email" class="block text-gray-700 dark:text-gray-300 mb-2">Your Email</label>
+                            <input type="email" id="email" name="email" class="w-full bg-gray-100 dark:bg-zinc-700 text-zinc-900 dark:text-white p-3 rounded-lg border border-gray-300 dark:border-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div class="mb-6">
+                            <label for="message" class="block text-gray-700 dark:text-gray-300 mb-2">Message</label>
+                            <textarea id="message" name="message" rows="5" class="w-full bg-gray-100 dark:bg-zinc-700 text-zinc-900 dark:text-white p-3 rounded-lg border border-gray-300 dark:border-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                        </div>
+                        <button type="submit" class="w-full bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-500 transition-colors shadow-lg">
+                            Send Message
+                        </button>
+                    </form>
+
+                    <!-- Contact Details --><div class="bg-white dark:bg-zinc-800 p-8 rounded-lg shadow-xl text-lg">
+                        <h3 class="text-2xl font-semibold text-zinc-900 dark:text-white mb-6">Contact Information</h3>
+                        <p class="text-gray-700 dark:text-gray-300 mb-8 leading-relaxed">
+                            Feel free to reach out to us through any of the following methods. We're here to help your business grow.
+                        </p>
+                        
+                        <div class="flex items-start mb-6">
+                            <svg class="w-6 h-6 text-indigo-500 dark:text-indigo-400 mr-4 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            <div>
+                                <h4 class="font-semibold text-zinc-900 dark:text-white">Our Location</h4>
+                                <p class="text-gray-700 dark:text-gray-300">15-21-32, Flat no 301, Shreyas Pvr, North West, Kukatpally, Hyderabad, Telangana 500072</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start mb-6">
+                            <svg class="w-6 h-6 text-indigo-500 dark:text-indigo-400 mr-4 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                            <div>
+                                <h4 class="font-semibold text-zinc-900 dark:text-white">Call Us</h4>
+                                <p class="text-gray-700 dark:text-gray-300">+91-9603832711</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start">
+                            <svg class="w-6 h-6 text-indigo-500 dark:text-indigo-400 mr-4 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                            <div>
+                                <h4 class="font-semibold text-zinc-900 dark:text-white">Email Us</h4>
+                                <p class="text-gray-700 dark:text-gray-300">info@enguruglobalsolutions.com</p>
+                            </div>
+                        </div>
+
+                        <!-- NEW: Divider -->
+                        <div class="flex items-center my-8">
+                            <span class="flex-grow h-px bg-gray-300 dark:bg-zinc-600"></span>
+                            <span class="mx-4 text-sm font-medium text-gray-500 dark:text-gray-400">OR</span>
+                            <span class="flex-grow h-px bg-gray-300 dark:bg-zinc-600"></span>
+                        </div>
+
+                        <!-- NEW: Action Buttons -->
+                        <div class="flex flex-col sm:flex-row gap-4">
+                            <!-- Email Button -->
+                            <a href="mailto:info@enguruglobalsolutions.com" class="flex-1 flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-3 rounded-lg font-semibold hover:bg-indigo-500 transition-all duration-300 ease-in-out hover:-translate-y-1 hover:scale-105 shadow-lg text-center">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                                Email Me
+                            </a>
+                            <!-- Call Button -->
+                            <a href="tel:+919603832711" class="flex-1 flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-3 rounded-lg font-semibold hover:bg-green-500 transition-all duration-300 ease-in-out hover:-translate-y-1 hover:scale-105 shadow-lg text-center">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                                Call Us
+                            </a>
+                            <!-- Map Button -->
+                            <a href="https://www.google.com/maps/search/?api=1&query=15-21-32%2C+Flat+no+301%2C+Shreyas+Pvr%2C+North+West%2C+Kukatpally%2C+Hyderabad%2C+Telangana+500072" target="_blank" rel="noopener noreferrer" class="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-3 rounded-lg font-semibold hover:bg-blue-500 transition-all duration-300 ease-in-out hover:-translate-y-1 hover:scale-105 shadow-lg text-center">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                View Map
+                            </a>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+    </main>
+
+    <!-- Footer --><!-- MODIFIED: Added light/dark classes --><footer class="bg-white dark:bg-zinc-900 border-t border-gray-200 dark:border-zinc-700 py-8">
+        <div class="container mx-auto px-6 text-center text-gray-500 dark:text-gray-400">
+            <div class="flex justify-center items-center space-x-6 mb-4">
+                <a href="#about" class="text-sm hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors">About Us</a>
+                <a href="#contact" class="text-sm hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors">Contact Us</a>
+                <a href="#" class="text-sm hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors">Privacy Policy</a>
+                <a href="#" class="text-sm hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors">Terms of Service</a>
+            </div>
+            <p class="text-sm">&copy; 2015 Enguru Global Solutions. All rights reserved.</p>
+            <!-- NEW: Added designer credit as requested -->
+        </div>
+    </footer>
+
+    <!-- NEW: Service Detail Modal -->
+    <div id="service-modal" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300">
+        <!-- Modal Panel -->
+        <div id="service-modal-panel" class="relative w-full max-w-3xl max-h-[90vh] bg-white dark:bg-zinc-800 rounded-lg shadow-2xl flex flex-col overflow-hidden transition-all transform scale-95 opacity-0 duration-300">
+            <!-- Modal Header -->
+            <div id="service-modal-header" class="flex items-center justify-between p-5 border-b border-gray-200 dark:border-zinc-700 transition-colors duration-300">
+                <div class="flex items-center space-x-4">
+                    <div id="service-modal-icon-container" class="w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center transition-colors duration-300">
+                        <!-- Icon will be cloned here -->
+                    </div>
+                    <h3 id="service-modal-title" class="text-2xl font-semibold text-zinc-900 dark:text-white">Service Title</h3>
+                </div>
+                <button id="service-modal-close" class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-200" aria-label="Close modal">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <!-- Modal Body (Scrollable) -->
+            <div id="service-modal-body" class="flex-grow p-6 md:p-8 overflow-y-auto">
+                <!-- whitespace-pre-line preserves newlines from the JS string -->
+                <p id="service-modal-content" class="text-base text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
+                    Service description will load here...
+                </p>
+            </div>
+        </div>
+    </div>
+    <!-- END NEW: Service Detail Modal -->
+
+
+    <!-- JavaScript Logic --><script>
+        // We use window.onload to ensure all external scripts (THREE, etc)
+        window.onload = function () { // <<< THIS LINE WAS MISSING
+            
+            // --- 3D Scene Variables ---
+            let scene, camera, renderer, earth, controls;
+            const EARTH_RADIUS = 5;
+            const GLOW_COLOR = new THREE.Color(0x6366f1); // Indigo color
+            const countryPoints = [];
+            const ships = [];
+            const arcs = [];
+            const darkBgColor = new THREE.Color(0x0a0a0a); 
+            // const lightBgColor = new THREE.Color(0x87ceeb); // Sky blue, no longer needed
+
+            // --- Get DOM Elements ---
+            const canvas = document.getElementById('webgl-earth-canvas');
+            const homeLogoLink = document.getElementById('home-logo-link'); // NEW: This is the logo text link
+            const themeToggleBtn = document.getElementById('theme-toggle-btn'); // This is now just the icon button
+            const heroTitle = document.getElementById('hero-title'); // No longer needed
+            // const heroSubtitle = document.getElementById('hero-subtitle'); // No longer needed
+
+            // --- NEW: Get Hero Content Overlay ---
+            const heroContentOverlay = document.querySelector('.hero-content-overlay');
+
+            <!-- NEW: Scroll Prompt Elements -->
+            const scrollPrompt = document.getElementById('scroll-prompt');
+            let scrollPromptHidden = false; // Flag to stop animations
+            let touchStartY = 0; // NEW: For swipe-to-scroll
+
+            // --- NEW: Mobile Menu Logic ---
+            const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+            const mobileMenuPanel = document.getElementById('mobile-menu-panel');
+            const mobileMenuLinks = mobileMenuPanel.querySelectorAll('a'); // MODIFIED: No longer selects the button
+
+            if (mobileMenuBtn) {
+                mobileMenuBtn.addEventListener('click', () => {
+                    mobileMenuPanel.classList.toggle('hidden');
+                });
+            }
+            
+            // Close mobile menu when a link is clicked
+            mobileMenuLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    // MODIFICATION: Removed conditional check, always close on link click
+                     mobileMenuPanel.classList.add('hidden');
+                });
+            });
+            // --- END NEW: Mobile Menu Logic ---
+
+
+            // --- NEW: Login Pop-up Window Logic (Modified) ---
+            
+            // Function to open the login popup
+            function openLoginPopup(event) {
+                event.preventDefault(); // Stop any default button action
+                
+                const loginUrl = 'login.html'; // The file you specified
+                const windowName = 'EnguruGlobalLogin';
+                
+                // --- NEW: Responsive Pop-up Sizing ---
+                let windowWidth;
+                let windowHeight;
+
+                // Check user's screen width to determine pop-up size
+                if (window.screen.width < 768) {
+                    // Mobile Size
+                    windowWidth = 400; // A common mobile-like width
+                    windowHeight = 700; // A common mobile-like height
+                } else {
+                    // Desktop Size
+                    windowWidth = 1024; // As requested for desktop
+                    windowHeight = 768; // As requested for desktop
+                }
+                // --- END NEW: Responsive Pop-up Sizing ---
+                
+                // Center the window
+                const windowLeft = (window.screen.width / 2) - (windowWidth / 2);
+                const windowTop = (window.screen.height / 2) - (windowHeight / 2);
+                
+                const windowFeatures = `width=${windowWidth},height=${windowHeight},left=${windowLeft},top=${windowTop},resizable=yes,scrollbars=yes`;
+                
+                // Open the new pop-up window
+                const loginPopup = window.open(loginUrl, windowName, windowFeatures);
+
+                // NEW: Check if the popup is closed, then check for login status
+                const checkPopupClosed = setInterval(() => {
+                    if (!loginPopup || loginPopup.closed) {
+                        clearInterval(checkPopupClosed);
+                        // After popup closes, check local storage for new login
+                        checkLoginStatus(); 
+                    }
+                }, 1000); // Check every second
+            }
+
+            // Get both login buttons
+            const loginButtonDesktop = document.getElementById('login-modal-trigger-desktop');
+            const loginButtonMobile = document.getElementById('login-modal-trigger-mobile');
+
+            if (loginButtonDesktop) {
+                loginButtonDesktop.addEventListener('click', openLoginPopup);
+            }
+            if (loginButtonMobile) {
+                loginButtonMobile.addEventListener('click', openLoginPopup);
+            }
+            // --- END NEW: Login Pop-up Window Logic (Modified) ---
+
+
+            // --- NEW: Handle Login Status ---
+            // This function updates the UI when a user is found
+            function handleUserLogin(email) {
+                const contactEmailField = document.getElementById('email');
+                if (contactEmailField) {
+                    contactEmailField.value = email;
+                    contactEmailField.readOnly = true; // Make it read-only
+                }
+
+                // Update text on both login buttons
+                const desktopLoginText = document.querySelector('#login-modal-trigger-desktop .text-xs');
+                const mobileLoginText = document.querySelector('#login-modal-trigger-mobile .text-xs');
+                
+                if (desktopLoginText) desktopLoginText.textContent = 'Account';
+                if (mobileLoginText) mobileLoginText.textContent = 'Account';
+            }
+
+            // This function checks local storage for a user
+            function checkLoginStatus() {
+                // We assume the login.html popup sets 'userEmail' in localStorage on success
+                // Example: localStorage.setItem('userEmail', 'user@example.com');
+                const loggedInEmail = localStorage.getItem('userEmail');
+                
+                if (loggedInEmail) {
+                    handleUserLogin(loggedInEmail);
+                }
+            }
+            // --- END NEW: Handle Login Status ---
+
+
+            // Function to update the 3D scene background
+            function updateEarthBackground(isDark) {
+                // MODIFIED: This function is now empty.
+                // We always want the dark background.
+            }
+
+            // Function to apply the chosen theme
+            function applyTheme(theme) {
+                if (theme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                    localStorage.theme = 'dark';
+                    // NEW: Set text color for dark mode
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.theme = 'light';
+                    // NEW: Set text color for light mode
+                }
+            }
+
+            // Function to toggle the theme
+            function toggleTheme() {
+                const currentTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                applyTheme(newTheme);
+            }
+
+            // Function for mouse-tracking eyes
+            function moveEyes(event) {
+                const pupils = document.querySelectorAll('#theme-toggle-btn .pupil');
+                const iconContainer = document.getElementById('theme-toggle-btn'); // This ID is now on the button
+                if (!iconContainer) return;
+
+                // Get center of the button
+                const rect = iconContainer.getBoundingClientRect();
+                const iconX = rect.left + rect.width / 2;
+                const iconY = rect.top + rect.height / 2;
+
+                // Get angle to mouse
+                const deltaX = event.clientX - iconX;
+                const deltaY = event.clientY - iconY;
+                const angle = Math.atan2(deltaY, deltaX);
+
+                const maxMove = 0.8; // Max pixels the pupil can move
+                const moveX = Math.cos(angle) * maxMove;
+                const moveY = Math.sin(angle) * maxMove;
+
+                pupils.forEach(pupil => {
+                    // Find the parent SVG icon
+                    const parentIcon = pupil.closest('svg');
+                    // Check if the parent SVG is currently visible (not 'hidden')
+                    if (parentIcon && parentIcon.offsetParent !== null) {
+                        pupil.style.transform = `translate(${moveX}px, ${moveY}px)`;
+                    } else {
+                        pupil.style.transform = 'translate(0, 0)'; // Reset if hidden
+                    }
+                });
+            }
+
+            // --- Set Initial Theme on Page Load ---
+            // (Runs before 3D init to set background color correctly)
+            // MODIFIED: Default to dark mode
+            if (localStorage.theme === 'light') {
+                applyTheme('light');
+            } else {
+                applyTheme('dark'); // Default to dark if 'dark' or not set
+            }
+
+            // --- NEW: Check login status on initial page load ---
+            checkLoginStatus();
+
+            // --- Add Event Listeners ---
+            if (homeLogoLink) { // NEW: Add listener for logo text link
+                homeLogoLink.addEventListener('click', (event) => {
+                    event.preventDefault(); // Prevent adding '#' to URL
+                    location.reload();
+                });
+            }
+            if (themeToggleBtn) { // This listener is for the icon button
+                // REVERTED: Changed back to toggleTheme per user request
+                themeToggleBtn.addEventListener('click', () => {
+                    toggleTheme();
+                });
+            }
+            window.addEventListener('mousemove', moveEyes);
+            // --- END NEW Theme & Eye Logic ---
+
+
+            // --- Preloader Logic (runs first) ---
+            const preloader = document.getElementById('preloader');
+            if (preloader) {
+                preloader.style.opacity = '0';
+                setTimeout(() => {
+                    preloader.style.display = 'none';
+                    
+                    // NEW: Show scroll prompt 1 second after preloader is gone
+                    if (scrollPrompt) {
+                        setTimeout(() => {
+                            if (!scrollPromptHidden) { // Only show if user hasn't scrolled yet
+                                scrollPrompt.classList.add('opacity-100');
+                            }
+                        }, 1000); // 1 second delay
+                    }
+
+                }, 500); 
+            }
+            
+            // --- 3D Earth Logic ---
+            // (Variables already declared at top)
+
+            // --- NEW: Hide Scroll Prompt on Scroll ---
+            window.addEventListener('scroll', () => {
+                if (scrollPrompt && !scrollPromptHidden && window.scrollY > 20) {
+                    scrollPromptHidden = true; // Set flag so it doesn't reappear
+                    scrollPrompt.classList.remove('opacity-100');
+                    scrollPrompt.classList.add('opacity-0');
+                }
+            }, { passive: true }); // Use passive listener for better scroll performance
+
+            // --- NEW: Swipe-to-Scroll Logic for the Prompt ---
+            if (scrollPrompt) {
+                // 1. Store the starting Y position of the touch
+                scrollPrompt.addEventListener('touchstart', (e) => {
+                    // Only track the first finger
+                    touchStartY = e.touches[0].clientY;
+                    // Prevent the touch from interacting with the 3D canvas behind it
+                    // We set passive: false to allow this
+                    e.preventDefault(); 
+                }, { passive: false });
+
+                // 2. Prevent default scrolling while swiping on the icon
+                scrollPrompt.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                }, { passive: false });
+
+                // 3. On touch end, check if it was a significant upward swipe
+                scrollPrompt.addEventListener('touchend', (e) => {
+                    const touchEndY = e.changedTouches[0].clientY;
+                    const swipeDistance = touchStartY - touchEndY; // Positive value = swipe up
+
+                    // Check for a significant upward swipe (e.g., more than 50px)
+                    if (swipeDistance > 50) {
+                        // Find the 'about' section and scroll to it
+                        const aboutSection = document.getElementById('about');
+                        if (aboutSection) {
+                            aboutSection.scrollIntoView({ behavior: 'smooth' });
+                        }
+                        // The 'window.addEventListener('scroll', ...)' function
+                        // will automatically detect this scroll and hide the prompt.
+                    }
+                }, { passive: false });
+            }
+            // --- END NEW: Swipe-to-Scroll Logic ---
+
+            // --- Country Data (Lat/Lon) ---
+            const countryLocations = {
+                'Hyderabad': { lat: 17.3850, lon: 78.4867 },
+                'Mumbai': { lat: 19.0760, lon: 72.8777 },
+                'New York': { lat: 40.7128, lon: -74.0060 },
+                'London': { lat: 51.5074, lon: -0.1278 },
+                'Sydney': { lat: -33.8688, lon: 151.2093 },
+                'Tokyo': { lat: 35.6762, lon: 139.6503 },
+                'Shanghai': { lat: 31.2304, lon: 121.4737 },
+                'Dubai': { lat: 25.276987, lon: 55.296249 },
+                'Rio': { lat: -22.9068, lon: -43.1729 },
+                'Singapore': { lat: 1.3521, lon: 103.8198 },
+                'Rotterdam': { lat: 51.9244, lon: 4.4777 },
+                'Los Angeles': { lat: 34.0522, lon: -118.2437 },
+                'Cape Town': { lat: -33.9249, lon: 18.4241 },
+                'Panama City': { lat: 8.9824, lon: -79.5199 },
+                'Buenos Aires': { lat: -34.6037, lon: -58.3816 }
+            };
+
+            // --- Polling function to wait for libraries ---
+            function checkAndStart3D() {
+                if (typeof THREE === 'undefined') {
+                    console.warn("THREE.js is not loaded yet. Retrying in 100ms...");
+                    setTimeout(checkAndStart3D, 100);
+                    return;
+                }
+                console.log("All 3D libraries loaded. Initializing Earth...");
+                initEarth();
+            }
+
+            function initEarth() {
+                if (typeof THREE === 'undefined') {
+                    console.error("initEarth called before THREE.js was loaded.");
+                    return;
+                }
+
+                // Scene
+                scene = new THREE.Scene();
+                // NEW: Set background based on theme
+                // MODIFIED: Always use the dark background color
+                scene.background = darkBgColor;
+
+                // Camera
+                camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                
+                // NEW: Adjust camera zoom for mobile
+                // MODIFICATION: Zoomed IN (smaller number)
+                if (window.innerWidth < 768) {
+                    camera.position.set(0, 0, 12); // Zoom in for mobile (was 13)
+                } else {
+                    camera.position.set(0, 0, 10); // Zoom in for desktop (was 11)
+                }
+
+                // Renderer
+                renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+                // Earth Geometry
+                const earthGeometry = new THREE.SphereGeometry(EARTH_RADIUS, 64, 64);
+
+                // Earth Textures
+                const textureLoader = new THREE.TextureLoader();
+                const earthTexture = textureLoader.load('https://cdn.jsdelivr.net/gh/mrdoob/three.js/examples/textures/planets/earth_atmos_2048.jpg');
+                const earthBump = textureLoader.load('https://cdn.jsdelivr.net/gh/mrdoob/three.js/examples/textures/planets/earth_specular_2048.jpg');
+                const earthSpecular = textureLoader.load('https://cdn.jsdelivr.net/gh/mrdoob/three.js/examples/textures/planets/earth_lights_2048.png');
+
+                const earthMaterial = new THREE.MeshPhongMaterial({
+                    map: earthTexture,
+                    bumpMap: earthBump,
+                    bumpScale: 0.05,
+                    specularMap: earthSpecular,
+                    specular: new THREE.Color('grey'),
+                    shininess: 10
+                });
+
+                earth = new THREE.Mesh(earthGeometry, earthMaterial);
+                scene.add(earth);
+
+                // Clouds
+                const cloudGeometry = new THREE.SphereGeometry(EARTH_RADIUS + 0.05, 64, 64);
+                const cloudTexture = textureLoader.load('https://cdn.jsdelivr.net/gh/mrdoob/three.js/examples/textures/planets/earth_clouds_1024.png');
+                const cloudMaterial = new THREE.MeshPhongMaterial({
+                    map: cloudTexture,
+                    transparent: true,
+                    opacity: 0.6,
+                    blending: THREE.AdditiveBlending
+                });
+                const clouds = new THREE.Mesh(cloudGeometry, cloudMaterial);
+                earth.add(clouds);
+
+                // Lighting
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+                scene.add(ambientLight);
+
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(5, 3, 5).normalize();
+                scene.add(directionalLight);
+                
+                // Starfield
+                createStarfield();
+
+                // Create business visualizations
+                createCountryMarkers();
+                createShips();
+                createDataArcs();
+
+                // OrbitControls
+                controls = new THREE.OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true;
+                controls.dampingFactor = 0.05;
+                controls.enableZoom = false; 
+                controls.minDistance = 5; 
+                controls.maxDistance = 15; 
+                controls.autoRotate = true; 
+                controls.autoRotateSpeed = 0.5; 
+                controls.maxPolarAngle = Math.PI / 2;
+                controls.minPolarAngle = 0;
+
+                // NEW: Disable touch panning on mobile to allow page scrolling
+                if (window.innerWidth < 768) {
+                    controls.enablePan = false;
+                }
+
+                // NEW: Prevent page scroll when touching the globe on mobile
+                // MODIFICATION: Removing the old, incorrect listeners
+                // canvas.addEventListener('touchstart', ...
+                // canvas.addEventListener('touchmove', ...
+
+
+                // --- NEW: Fix for Mobile Scroll vs. Rotate ---
+                // This logic disables globe rotation when you start
+                // a touch on the text, allowing the page to scroll.
+                if (heroContentOverlay) {
+                    heroContentOverlay.addEventListener('touchstart', (event) => {
+                        // When touch starts on the text, disable controls
+                        if (controls) {
+                            controls.enabled = false;
+                        }
+                    }, { passive: true }); // passive: true is important for scrolling
+
+                    heroContentOverlay.addEventListener('touchend', (event) => {
+                        // When touch ends, re-enable controls
+                        if (controls) {
+                            controls.enabled = true;
+                        }
+                    }, { passive: true });
+                }
+                // --- END NEW Fix ---
+
+
+                window.addEventListener('resize', onWindowResizeEarth);
+
+                // Event listeners to enable zoom with Ctrl key
+                window.addEventListener('keydown', (event) => {
+                    if (event.key === 'Control') {
+                        controls.enableZoom = true;
+                    }
+                });
+                window.addEventListener('keyup', (event) => {
+                    if (event.key === 'Control') {
+                        controls.enableZoom = false;
+                    }
+                });
+                window.addEventListener('blur', () => {
+                    controls.enableZoom = false;
+                });
+
+                animateEarth();
+            }
+
+            function createStarfield() {
+                const starGeometry = new THREE.BufferGeometry();
+                const starVertices = [];
+                for (let i = 0; i < 5000; i++) {
+                    const x = (Math.random() - 0.5) * 200;
+                    const y = (Math.random() - 0.5) * 200;
+                    const z = (Math.random() - 0.5) * 200;
+                    starVertices.push(x, y, z);
+                }
+                starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+                const starMaterial = new THREE.PointsMaterial({
+                    color: 0xffffff,
+                    size: 0.1,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const stars = new THREE.Points(starGeometry, starMaterial);
+                scene.add(stars);
+            }
+
+            function latLongToVector3(lat, lon, radius) {
+                const phi = (90 - lat) * (Math.PI / 180);
+                const theta = (lon + 180) * (Math.PI / 180);
+                const x = -(radius * Math.sin(phi) * Math.cos(theta));
+                const y = radius * Math.cos(phi);
+                const z = radius * Math.sin(phi) * Math.sin(theta);
+                return new THREE.Vector3(x, y, z);
+            }
+
+            function createCountryMarkers() {
+                const markerGeometry = new THREE.SphereGeometry(0.05, 16, 16);
+                const markerMaterial = new THREE.MeshBasicMaterial({ 
+                    color: GLOW_COLOR, 
+                    transparent: true, 
+                    opacity: 0.8 
+                });
+
+                for (const name in countryLocations) {
+                    const loc = countryLocations[name];
+                    const position = latLongToVector3(loc.lat, loc.lon, EARTH_RADIUS + 0.01);
+                    const marker = new THREE.Mesh(markerGeometry, markerMaterial.clone());
+                    marker.position.copy(position);
+                    earth.add(marker);
+                    countryPoints.push(marker);
+                }
+            }
+            
+            function createContainerShip() {
+                const shipGroup = new THREE.Group();
+                const hullMaterial = new THREE.MeshPhongMaterial({ color: 0x495057, specular: 0x111111, shininess: 20 });
+                const deckMaterial = new THREE.MeshPhongMaterial({ color: 0x6c757d });
+                const bridgeMaterial = new THREE.MeshPhongMaterial({ color: 0xf8f9fa });
+                
+                const hullShape = new THREE.Shape();
+                hullShape.moveTo(-0.18, -0.03);
+                hullShape.lineTo(-0.18, 0.03);
+                hullShape.lineTo(0.15, 0.03);
+                hullShape.lineTo(0.22, 0);
+                hullShape.lineTo(0.15, -0.03);
+                hullShape.lineTo(-0.18, -0.03);
+                
+                const extrudeSettings = { steps: 1, depth: 0.06, bevelEnabled: true, bevelThickness: 0.005, bevelSize: 0.005, bevelSegments: 2 };
+                const hullGeom = new THREE.ExtrudeGeometry(hullShape, extrudeSettings);
+                const hull = new THREE.Mesh(hullGeom, hullMaterial);
+                hull.rotation.x = -Math.PI / 2;
+                hull.position.y = 0.02;
+                hull.position.z = 0.03;
+                shipGroup.add(hull);
+
+                const deckGeom = new THREE.BoxGeometry(0.34, 0.01, 0.055);
+                const deck = new THREE.Mesh(deckGeom, deckMaterial);
+                deck.position.y = 0.045;
+                shipGroup.add(deck);
+
+                const bridgeBaseGeom = new THREE.BoxGeometry(0.06, 0.04, 0.05);
+                const bridgeBase = new THREE.Mesh(bridgeBaseGeom, bridgeMaterial);
+                bridgeBase.position.set(-0.14, 0.07, 0);
+                shipGroup.add(bridgeBase);
+                
+                const bridgeTopGeom = new THREE.BoxGeometry(0.05, 0.03, 0.05);
+                const bridgeTop = new THREE.Mesh(bridgeTopGeom, bridgeMaterial);
+                bridgeTop.position.set(-0.14, 0.10, 0);
+                shipGroup.add(bridgeTop);
+
+                const stackGeom = new THREE.CylinderGeometry(0.01, 0.015, 0.04, 8);
+                const stackMaterial = new THREE.MeshPhongMaterial({ color: 0x6366f1 });
+                const stack = new THREE.Mesh(stackGeom, stackMaterial);
+                stack.position.set(-0.17, 0.11, 0);
+                shipGroup.add(stack);
+                
+                const containerGeom = new THREE.BoxGeometry(0.05, 0.025, 0.025);
+                const materials = [
+                    new THREE.MeshPhongMaterial({ color: 0x0077b6 }),
+                    new THREE.MeshPhongMaterial({ color: 0xadb5bd }),
+                    new THREE.MeshPhongMaterial({ color: 0x005f73 })
+                ];
+                
+                let containerCount = 0;
+                for (let stack = 0; stack < 3; stack++) {
+                    for (let y = 0; y < 3; y++) {
+                        for (let z = 0; z < 2; z++) {
+                            const container = new THREE.Mesh(containerGeom, materials[containerCount % 3]);
+                            container.position.set(-0.05 + stack * 0.06, 0.06 + y * 0.025, (z === 0 ? 0.013 : -0.013));
+                            shipGroup.add(container);
+                            containerCount++;
+                        }
+                    }
+                }
+                for (let y = 0; y < 2; y++) {
+                    for (let z = 0; z < 2; z++) {
+                        const container = new THREE.Mesh(containerGeom, materials[containerCount % 3]);
+                        container.position.set(0.1, 0.06 + y * 0.025, (z === 0 ? 0.013 : -0.013));
+                        shipGroup.add(container);
+                        containerCount++;
+                    }
+                }
+
+                return shipGroup;
+            }
+
+            function createShips() {
+                const shipModel1 = createContainerShip();
+                shipModel1.scale.set(1.5, 1.5, 1.5); // NEW: Made ships 1.5x bigger
+                const shipRoutes = [
+                    { start: countryLocations['Mumbai'], end: countryLocations['Dubai'], speed: 0.0005, offset: 0 },
+                    { start: countryLocations['Shanghai'], end: countryLocations['New York'], speed: 0.0004, offset: 0.3 },
+                    { start: countryLocations['Sydney'], end: countryLocations['Tokyo'], speed: 0.0006, offset: 0.6 },
+                    { start: countryLocations['London'], end: countryLocations['New York'], speed: 0.00045, offset: 0.1 },
+                    { start: countryLocations['Rio'], end: countryLocations['London'], speed: 0.00035, offset: 0.4 },
+                    { start: countryLocations['Shanghai'], end: countryLocations['Dubai'], speed: 0.00055, offset: 0.8 },
+                    { start: countryLocations['Singapore'], end: countryLocations['Rotterdam'], speed: 0.0003, offset: 0.05 },
+                    { start: countryLocations['Mumbai'], end: countryLocations['Singapore'], speed: 0.0005, offset: 0.95 },
+                    // --- NEW: Added more ship routes ---
+                    { start: countryLocations['Hyderabad'], end: countryLocations['Singapore'], speed: 0.0004, offset: 0.2 },
+                    { start: countryLocations['Hyderabad'], end: countryLocations['Cape Town'], speed: 0.0003, offset: 0.5 },
+                    { start: countryLocations['Mumbai'], end: countryLocations['London'], speed: 0.00045, offset: 0.7 },
+                    { start: countryLocations['Sydney'], end: countryLocations['Los Angeles'], speed: 0.0004, offset: 0.9 },
+                    { start: countryLocations['Rio'], end: countryLocations['Cape Town'], speed: 0.0005, offset: 0.1 },
+                    { start: countryLocations['Tokyo'], end: countryLocations['Los Angeles'], speed: 0.00035, offset: 0.3 },
+                    // --- NEW: Added more ship routes (6 new) ---
+                    { start: countryLocations['Rotterdam'], end: countryLocations['Panama City'], speed: 0.0004, offset: 0.15 },
+                    { start: countryLocations['Dubai'], end: countryLocations['Cape Town'], speed: 0.0005, offset: 0.25 },
+                    { start: countryLocations['Singapore'], end: countryLocations['Sydney'], speed: 0.00045, offset: 0.45 },
+                    { start: countryLocations['Buenos Aires'], end: countryLocations['Rotterdam'], speed: 0.0003, offset: 0.55 },
+                    { start: countryLocations['Los Angeles'], end: countryLocations['Shanghai'], speed: 0.0004, offset: 0.65 },
+                    { start: countryLocations['Panama City'], end: countryLocations['New York'], speed: 0.00055, offset: 0.75 }
+                    // --- END NEW Routes ---
+                ];
+
+                shipRoutes.forEach((route) => {
+                    const startVec = latLongToVector3(route.start.lat, route.start.lon, EARTH_RADIUS + 0.01);
+                    const endVec = latLongToVector3(route.end.lat, route.end.lon, EARTH_RADIUS + 0.01);
+                    const mid = new THREE.Vector3().addVectors(startVec, endVec).multiplyScalar(0.5);
+                    mid.normalize().multiplyScalar(EARTH_RADIUS + 0.01);
+                    const shipPath = new THREE.QuadraticBezierCurve3(startVec, mid, endVec);
+                    const shipMesh = shipModel1.clone();
+                    
+                    const wakeGeometry = new THREE.BufferGeometry();
+                    const wakeMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4, linewidth: 1 });
+                    const wakeLine = new THREE.Line(wakeGeometry, wakeMaterial);
+                    
+                    ships.push({
+                        mesh: shipMesh,
+                        path: shipPath,
+                        speed: route.speed,
+                        offset: route.offset,
+                        wakePoints: [],
+                        wakeLine: wakeLine
+                    });
+                    earth.add(shipMesh);
+                    earth.add(wakeLine);
+                });
+            }
+
+            function createDataArcs() {
+                const routes = [
+                    { name: 'HYD to NYC', start: countryLocations['Hyderabad'], end: countryLocations['New York'] },
+                    { name: 'HYD to LDN', start: countryLocations['Hyderabad'], end: countryLocations['London'] },
+                    { name: 'HYD to SYD', start: countryLocations['Hyderabad'], end: countryLocations['Sydney'] },
+                    { name: 'HYD to DXB', start: countryLocations['Hyderabad'], end: countryLocations['Dubai'] },
+                    { name: 'HYD to RIO', start: countryLocations['Hyderabad'], end: countryLocations['Rio'] },
+                    // --- NEW: Added more data arcs (5 new) ---
+                    { name: 'LDN to NYC', start: countryLocations['London'], end: countryLocations['New York'] },
+                    { name: 'TKY to LA', start: countryLocations['Tokyo'], end: countryLocations['Los Angeles'] },
+                    { name: 'SYD to SNG', start: countryLocations['Sydney'], end: countryLocations['Singapore'] },
+                    { name: 'DXB to RTM', start: countryLocations['Dubai'], end: countryLocations['Rotterdam'] },
+                    { name: 'RIO to CPT', start: countryLocations['Rio'], end: countryLocations['Cape Town'] },
+                ];
+
+                routes.forEach((route, index) => {
+                    const startVec = latLongToVector3(route.start.lat, route.start.lon, EARTH_RADIUS + 0.02);
+                    const endVec = latLongToVector3(route.end.lat, route.end.lon, EARTH_RADIUS + 0.02);
+
+                    const mid = new THREE.Vector3().addVectors(startVec, endVec).multiplyScalar(0.5);
+                    const midLength = mid.length();
+                    mid.normalize().multiplyScalar(midLength + (startVec.distanceTo(endVec) * 0.4));
+                    
+                    const curve = new THREE.QuadraticBezierCurve3(startVec, mid, endVec);
+                    const points = curve.getPoints(50);
+
+                    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                    const material = new THREE.LineBasicMaterial({ color: GLOW_COLOR, linewidth: 2, transparent: true, opacity: 0.7 });
+                    
+                    const line = new THREE.Line(geometry, material);
+                    earth.add(line);
+                    arcs.push({ line: line, curve: curve, animationOffset: index * 0.7 });
+                });
+            }
+
+            function onWindowResizeEarth() {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                
+                // NEW: Adjust camera zoom on resize
+                // MODIFICATION: Zoomed IN (smaller number)
+                if (window.innerWidth < 768) {
+                    camera.position.z = 12; // Zoom in for mobile (was 13)
+                } else {
+                    camera.position.z = 10; // Default for desktop (was 11)
+                }
+
+                // NEW: Disable touch panning on mobile to allow page scrolling
+                if (window.innerWidth < 768) {
+                    controls.enablePan = false;
+                } else {
+                    controls.enablePan = true; // Re-enable for desktop
+                }
+
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+
+            function animateEarth() {
+                requestAnimationFrame(animateEarth);
+                const time = Date.now();
+
+                // Animate Ships
+                ships.forEach(ship => {
+                    let newOffset = (ship.offset + ship.speed);
+                    if (newOffset >= 1) {
+                        newOffset = 0;
+                        ship.wakePoints = [];
+                    }
+                    ship.offset = newOffset;
+                    
+                    const point = ship.path.getPointAt(ship.offset);
+                    const tangent = ship.path.getTangentAt(ship.offset);
+
+                    ship.mesh.position.copy(point);
+                    ship.mesh.lookAt(point.clone().add(tangent));
+
+                    ship.wakePoints.push(point.clone());
+                    if (ship.wakePoints.length > 50) {
+                        ship.wakePoints.shift();
+                    }
+                    ship.wakeLine.geometry.setFromPoints(ship.wakePoints);
+                    ship.wakeLine.geometry.attributes.position.needsUpdate = true;
+                });
+
+                // Animate Arcs
+                arcs.forEach(arc => {
+                    const arcTime = time * 0.0015 + arc.animationOffset;
+                    const arcPulse = (Math.sin(arcTime) + 1) / 2; 
+                    arc.line.material.opacity = arcPulse;
+                });
+
+                // Animate country points
+                countryPoints.forEach((point, index) => {
+                    const pulseOffset = (Math.sin((time * 0.003) + index) + 1) / 2; // MODIFIED: Added missing parenthesis and normalized value
+                    point.material.opacity = pulseOffset;
+                });
+                
+                if (controls) controls.update(); 
+                renderer.render(scene, camera);
+            }
+
+
+            // --- NEW: Service Modal Content Store ---
+            const serviceDetails = {
+                'software-development': {
+                    title: "Software Development",
+                    icon: `<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>`,
+                    colorClass: "bg-indigo-600",
+                    content: `ENGURU Global Solutions provides end-to-end software development tailored to meet the complex needs of modern businesses. Our teams specialize in building robust enterprise solutions, ERP systems, automation frameworks, and web-based platforms that transform operations and enhance productivity.
+We take a client-centric approach — understanding your challenges, mapping workflows, and designing custom software architectures that are scalable, secure, and future-ready. Whether developing from scratch or modernizing legacy systems, our experts apply agile methodologies to ensure flexibility and predictable delivery.
+ENGURU also focuses on integration, API connectivity, and cloud adoption to make information easily accessible across departments. Every line of code we write is tested, optimized, and documented for long-term maintainability.
+From proof-of-concept to full deployment, ENGURU is your technology partner, bringing together innovation, usability, and business intelligence to deliver measurable results.`
+                },
+                'web-designing': {
+                    title: "Web Designing",
+                    icon: `<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17.25l.038-.038A7.5 7.5 0 0112 15c1.528 0 2.94.59 4.01 1.583l.038.038M3.75 12h16.5M12 3.75v16.5"></path></svg>`,
+                    colorClass: "bg-purple-600",
+                    content: `A website is the digital soul of your business, and ENGURU crafts designs that truly embody your identity. We blend creativity, user-experience research, and cutting-edge development to create websites that inspire trust and drive conversions.
+Each project begins with an in-depth analysis of brand positioning, audience behavior, and usability goals. We then design intuitive navigation, pixel-perfect layouts, and high-performance visuals optimized for every device and browser.
+Our responsive web solutions include landing pages, corporate sites, e-commerce stores, and portals — all built for speed, accessibility, and SEO performance. Every update in UI frameworks or visual trends is adopted quickly so your website stays modern and engaging.
+Beyond aesthetics, we focus on measurable outcomes: reduced bounce rates, better lead capture, and seamless integration with CRM or analytics platforms.`
+                },
+                'mobile-app-development': {
+                    title: "Mobile App Development",
+                    icon: `<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18h3"></path></svg>`,
+                    colorClass: "bg-cyan-500",
+                    content: `ENGURU develops mobile applications that bridge the gap between businesses and their customers. Our expertise covers Android, iOS, and cross-platform solutions using frameworks such as Flutter and React Native.
+We handle every phase of the lifecycle — ideation, wireframing, UX/UI design, coding, testing, deployment, and post-launch maintenance. Our developers emphasize data security, scalability, and smooth performance even under high user loads.
+We design applications for multiple sectors — education, logistics, healthcare, retail, and finance — ensuring that every product delivers intuitive navigation and responsive design. Push notifications, real-time analytics, payment gateways, and offline modes are integrated to maximize user engagement.
+ENGURU’s mobile development services are backed by continuous research into emerging technologies like AI chatbots, IoT integration, and augmented reality, keeping our clients ahead in the mobile era.`
+                },
+                'content-development': {
+                    title: "Content Development",
+                    icon: `<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125"></path></svg>`,
+                    colorClass: "bg-teal-500",
+                    content: `At ENGURU, we understand that content defines perception. Our content development division crafts precise, persuasive, and purpose-driven communication that strengthens brand authority and customer connection.
+We produce everything from web copy and blogs to technical manuals, brochures, product descriptions, and thought-leadership articles. Each piece is written by domain experts who align tone, terminology, and keyword strategy with your audience and goals.
+Beyond writing, our team provides end-to-end content management — structuring, version control, publication scheduling, and multilingual localization. Using modern CMS tools, we ensure your brand’s story remains consistent across platforms.
+By combining creative storytelling with data-driven strategy, ENGURU’s content fuels marketing success and builds long-term credibility in your digital ecosystem.`
+                },
+                'seo': {
+                    title: "Search Engine Optimization",
+                    icon: `<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"></path></svg>`,
+                    colorClass: "bg-orange-500",
+                    content: `Visibility equals opportunity — and ENGURU’s SEO services ensure your business is visible where it matters most. We build organic search authority through comprehensive technical audits, keyword research, and continuous optimization.
+Our process covers every layer of SEO:
+
+On-page optimization: metadata, schema markup, URL hierarchy, internal linking.
+Off-page strategies: backlink acquisition, digital PR, influencer outreach, and guest publishing.
+Technical performance: improving Core Web Vitals, site speed, and crawl efficiency.
+ENGURU’s SEO experts combine analytics with creativity to position your brand for sustainable ranking growth. We use white-hat methods that comply with Google’s evolving algorithms, ensuring long-term stability and trust.
+From small startups to global enterprises, our campaigns drive qualified traffic, stronger engagement, and measurable ROI.`
+                },
+                'manpower-recruitment': {
+                    title: "Manpower Recruitment",
+                    icon: `<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.53-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"></path></svg>`,
+                    colorClass: "bg-red-500",
+                    content: `ENGURU’s Manpower Recruitment division delivers human-capital solutions for every business scale. We provide staffing for IT, engineering, manufacturing, healthcare, education, and infrastructure sectors.
+Our recruitment process involves strategic sourcing, competency evaluation, psychometric testing, and cultural fit analysis to identify candidates who add true value. We handle permanent, contractual, and project-based placements domestically and internationally.
+Each client is assigned a dedicated account manager to ensure transparency and timely communication throughout the hiring cycle. Our vast candidate database, regularly updated and segmented by specialization, allows for rapid mobilization when urgent roles open.
+By combining technology with human expertise, ENGURU builds workforces that strengthen organizational capability and growth.`
+                },
+                'export-import': {
+                    title: "Export & Import",
+                    icon: `<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.125-.504 1.125-1.125V14.25m-17.25 4.5v-1.875a3.375 3.375 0 013.375-3.375h9.75a3.375 3.375 0 013.375 3.375v1.875m-17.25 4.5c0 .621.504 1.125 1.125 1.125h13.5c.621 0 1.125-.504 1.125-1.125m-17.25 4.5v-4.875c0-.621.504-1.125 1.125-1.125h13.5c.621 0 1.125.504 1.125 1.125v4.875M12 12.75h.008v.008H12v-.008z"></path></svg>`,
+                    colorClass: "bg-blue-500",
+                    content: `ENGURU Exporters operates as a trusted global trading house, connecting international buyers and sellers through ethical, efficient, and transparent trade practices.
+We specialize in exporting minerals, quartz, granite, marble, rice, and various industrial raw materials. Quality control begins at the source — every batch undergoes inspection for composition, finish, and packaging integrity before dispatch.
+Our logistics team manages shipping documentation, customs clearance, and regulatory compliance to ensure smooth transit worldwide. By leveraging global supply-chain networks and long-term partnerships, we maintain consistent delivery timelines.
+ENGURU’s mission is to elevate India’s export standards by offering products and services that meet international benchmarks while fostering sustainable trade relationships.`
+                },
+                'payroll-management': {
+                    title: "Payroll Management",
+                    icon: `<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0l.879-.659M12 6a3 3 0 100-6 3 3 0 000 6z"></path></svg>`,
+                    colorClass: "bg-yellow-500",
+                    content: `Payroll accuracy is vital to employee trust and legal compliance. ENGURU delivers advanced payroll management systems that automate complex calculations and streamline every aspect of compensation administration.
+Our software supports attendance integration, overtime tracking, reimbursement management, and statutory deductions such as PF, ESI, and TDS. Built-in analytics provide HR teams with insights into cost trends and productivity metrics.
+We offer secure employee self-service portals for payslip downloads, tax declarations, and leave applications — reducing manual intervention.
+By outsourcing payroll to ENGURU, companies gain operational efficiency, data confidentiality, and freedom to focus on strategic HR initiatives instead of administrative chores.`
+                },
+                'outsourcing': {
+                    title: "Outsourcing",
+                    icon: `<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18c-2.305 0-4.408.867-6 2.292m0-14.25v14.25"></path></svg>`,
+                    colorClass: "bg-fuchsia-500",
+                    content: `ENGURU’s outsourcing solutions help organizations achieve efficiency and scalability without compromising quality. We take over non-core processes so your internal teams can focus on innovation and growth.
+Our offerings cover marketing support, data entry, lead generation, accounting, and administrative services. We provide dedicated remote teams that integrate seamlessly with your workflows while maintaining strict confidentiality and performance benchmarks.
+Using process-automation tools and continuous monitoring, ENGURU ensures predictable outcomes and cost reduction. We also customize engagement models — onshore, offshore, or hybrid — to match your operational needs.
+With ENGURU as your outsourcing partner, you gain access to specialized talent, faster delivery cycles, and measurable productivity gains.`
+                },
+                'bpo': {
+                    title: "Business Process Outsourcing (BPO)",
+                    icon: `<svg class="w-6 h-6 text-zinc-800" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.08l.738-.46c.47-.29.99-.26 1.41.08l.772.67c.42.36.51.97.23 1.41l-.39 1.15c-.18.53-.16.99.08 1.41.24.42.66.7 1.13.7h1.18c.55 0 .94.41.94 1.11v1.093c0 .7-.39 1.11-.94 1.11h-1.18c-.47 0-.89.28-1.13.7-.24.42-.26.88-.08 1.41l.39 1.15c.28.44.19 1.05-.23 1.41l-.772.67c-.42.36-.94.39-1.41.08l-.738-.46c-.35-.22-.807-.24-1.205-.08-.396.167-.71.506-.78.93l-.149.894c-.09.542-.56.94-1.11.94h-1.093c-.55 0-1.02-.398-1.11-.94l-.149-.894c-.07-.424-.384-.764-.78-.93-.398-.164-.855.142-1.205-.08l-.738.46c-.47.29-.99.26-1.41-.08l-.772-.67c-.42-.36-.51.97-.23 1.41l.39-1.15c.18-.53.16-.99-.08-1.41-.24-.42-.66-.7-1.13-.7H3.94c-.55 0-.94-.41-.94-1.11V11.5c0-.7.39-1.11.94-1.11h1.18c.47 0 .89-.28 1.13.7.24-.42.26-.88.08-1.41l-.39-1.15c-.28-.44-.19-1.05.23-1.41l-.772.67c-.42-.36.94.39 1.41.08l.738.46c.35.22.807.24 1.205.08.396.167.71.506-.78.93l.149.894z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15a3 3 0 100-6 3 3 0 000 6z"></path></svg>`,
+                    colorClass: "bg-lime-500",
+                    content: `ENGURU’s BPO division empowers organizations to deliver superior customer experiences while minimizing operational costs. We manage complete front- and back-office functions with reliability and precision.
+Our BPO services include inbound and outbound call centers, customer service, collections, order processing, data management, and technical helpdesks. Every campaign is backed by real-time analytics dashboards that track KPIs such as FCR (First Call Resolution) and customer satisfaction scores.
+We train agents to understand your products, culture, and tone — ensuring that each interaction builds trust and loyalty. Security and compliance are maintained through encrypted systems, quality audits, and strict data-privacy policies.
+By combining advanced CRM technology with human empathy, ENGURU transforms your support channels into a strategic advantage that drives growth and retention.`
+                },
+            };
+            // --- END NEW: Service Modal Content Store ---
+
+
+            // --- NEW: Service Modal Logic ---
+            const serviceModal = document.getElementById('service-modal');
+            const serviceModalPanel = document.getElementById('service-modal-panel');
+            const serviceModalHeader = document.getElementById('service-modal-header');
+            const serviceModalIconContainer = document.getElementById('service-modal-icon-container');
+            const serviceModalTitle = document.getElementById('service-modal-title');
+            const serviceModalContent = document.getElementById('service-modal-content');
+            const serviceModalClose = document.getElementById('service-modal-close');
+            const serviceCardLinks = document.querySelectorAll('.service-card-link');
+
+            // Store the color classes for the modal header
+            let currentModalColor = '';
+
+            function openServiceModal(serviceKey) {
+                const details = serviceDetails[serviceKey];
+                if (!details) {
+                    console.error('Service details not found for:', serviceKey);
+                    return;
+                }
+
+                // 1. Populate content
+                serviceModalTitle.textContent = details.title;
+                serviceModalContent.textContent = details.content;
+                serviceModalIconContainer.innerHTML = details.icon;
+
+                // 2. Set colors
+                // Remove old color
+                if (currentModalColor) {
+                    serviceModalHeader.classList.remove(currentModalColor);
+                    serviceModalIconContainer.classList.remove(currentModalColor);
+                }
+                // Add new color
+                currentModalColor = details.colorClass;
+                serviceModalHeader.classList.add(currentModalColor);
+                serviceModalIconContainer.classList.add(currentModalColor);
+                // Make header text white for dark backgrounds
+                serviceModalHeader.classList.add('text-white');
+                // Make close button match text
+                serviceModalClose.classList.add('text-gray-200', 'dark:text-gray-200');
+                
+                // 3. Show modal
+                serviceModal.classList.remove('hidden');
+                setTimeout(() => {
+                    serviceModal.classList.add('opacity-100');
+                    serviceModalPanel.classList.remove('scale-95', 'opacity-0');
+                    serviceModalPanel.classList.add('scale-100', 'opacity-100');
+                }, 10); // Start transition
+            }
+
+            function closeServiceModal() {
+                serviceModalPanel.classList.add('scale-95', 'opacity-0');
+                serviceModalPanel.classList.remove('scale-100', 'opacity-100');
+                serviceModal.classList.remove('opacity-100');
+                
+                setTimeout(() => {
+                    serviceModal.classList.add('hidden');
+                    // Reset colors and content
+                    serviceModalTitle.textContent = 'Service Title';
+                    serviceModalContent.textContent = 'Service description will load here...';
+                    serviceModalIconContainer.innerHTML = '';
+                    if (currentModalColor) {
+                        serviceModalHeader.classList.remove(currentModalColor);
+                        serviceModalIconContainer.classList.remove(currentModalColor);
+                        serviceModalHeader.classList.remove('text-white');
+                        serviceModalClose.classList.remove('text-gray-200', 'dark:text-gray-200');
+                        currentModalColor = '';
+                    }
+                }, 300); // Wait for animation
+            }
+
+            // Add click listeners to all service cards
+            serviceCardLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const serviceKey = link.dataset.service;
+                    openServiceModal(serviceKey);
+                });
+            });
+
+            // Add close listeners
+            serviceModalClose.addEventListener('click', closeServiceModal);
+            serviceModal.addEventListener('click', (e) => {
+                // Close if backdrop is clicked
+                if (e.target === serviceModal) {
+                    closeServiceModal();
+                }
+            });
+            // --- END NEW: Service Modal Logic ---
+
+            
+            // Start the polling check
+            checkAndStart3D();
+        };
+    </script>
+
+</body>
+</html>

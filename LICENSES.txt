@@ -1,0 +1,6 @@
+Copyright (c) 2015 [ENGURU GLOBAL SOLUTIONS PRIVATE LIMITED]
+All Rights Reserved.
+
+This project was created by [I.SANJAY RAGHAV REDDY] for [ENGURU GLOBAL SOLUTIONS PRIVATE LIMITED] as part of a professional assignment.
+It is published here only to showcase my design and development skills.
+Unauthorized use, copying, modification, or distribution of this code or design is strictly prohibited.
